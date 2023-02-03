@@ -78,3 +78,6 @@ table3.rename(columns={'id_parent': 'id'}, inplace=True)
 table1 = pd.DataFrame.from_dict(category_id, orient='index').rename(columns={0:'id'})
 table2 = pd.DataFrame.from_dict(subcategory_id_parent, orient='index').rename(columns={0: 'id', 1: 'parent'})
 table3 = pd.DataFrame.from_dict(subsubcategory_id_parent, orient='index').rename(columns={0: 'id', 1: 'parent'})
+
+url_id_pd = pd.DataFrame.from_dict(url_id, orient='index').rename(columns={0:'url'})
+print(url_id_pd)
