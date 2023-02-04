@@ -59,8 +59,8 @@ def get_data(file):
 
         category_id[category] = id
 
-
 file = 'wb_catalogs_data.json'
 name = 'wb_catalogs_data.json'
-url = url = "https://static-basket-01.wb.ru/vol0/data/main-menu-ru-ru-v2.json"
+url = "https://static-basket-01.wb.ru/vol0/data/main-menu-ru-ru-v2.json"
+# get_jsonfile(name, url)
 get_data(file)
