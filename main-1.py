@@ -4,20 +4,26 @@ import pandas as pd
 import json
 import csv
 
-def get_jsonfile(name, url):
-    headers = {
-                    "Accept": "*/*",
-                    "User-Agent": "Mozilla/5.0 (iPad; CPU OS 13_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/87.0.4280.77 Mobile/15E148 Safari/604.1"
-                }
+headers = {
+                "Accept": "*/*",
+                "User-Agent": "Mozilla/5.0 (iPad; CPU OS 13_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/87.0.4280.77 Mobile/15E148 Safari/604.1"
+            }
 
-    r = requests.get(url, headers=headers)
-    r.encoding = r.apparent_encoding
+url = "https://static-basket-01.wb.ru/vol0/data/main-menu-ru-ru-v2.json"
+pref_url = "https://www.wildberries.ru"
 
-    data = r.json()
-    with open(name, 'w', encoding='UTF-8') as json_file:
-        json.dump(data, json_file, indent=4, ensure_ascii=False)
-        print(f'Данные сохранены в {name}')
+'''
+r = requests.get(url, headers=headers)
+r.encoding = r.apparent_encoding
 
+data = r.json()
+with open('wb_catalogs_data.json', 'w', encoding='UTF-8') as json_file:
+    json.dump(data, json_file, indent=4, ensure_ascii=False)
+    print('Данные сохранены в wb_catalogs_data.json')
+'''
+
+def check_childs(category):
+    return True if 'childs' in category else False
 
 def get_data(file):
     pref_url = "https://www.wildberries.ru"
@@ -59,8 +65,8 @@ def get_data(file):
 
         category_id[category] = id
 
+#print(table2.join(table3, lsuffix='_caller', rsuffix='_other'))
+
 
 file = 'wb_catalogs_data.json'
-name = 'wb_catalogs_data.json'
-url = url = "https://static-basket-01.wb.ru/vol0/data/main-menu-ru-ru-v2.json"
 get_data(file)
