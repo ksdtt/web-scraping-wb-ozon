@@ -3,64 +3,51 @@ from bs4 import BeautifulSoup as bs
 import pandas as pd
 import json
 import csv
-import os
+from time import sleep
+import random
 
-def get_json_file(name, url, headers):
+def get_json_file_menu(name, url, headers):
     r = requests.get(url, headers=headers)
     r.encoding = r.apparent_encoding
 
     data = r.json()
-    with open(name, 'w', encoding='UTF-8') as json_file:
+    with open(name, 'a', encoding='UTF-8') as json_file:
         json.dump(data, json_file, indent=4, ensure_ascii=False)
         print(f'Данные сохранены в {name}')
 
-def get_htmp_page(url, category, headers):
-    r = requests.get(url, headers=headers)
-    r.encoding = r.apparent_encoding
-    with open(f'data/{category}.html', 'w', encoding="utf-8") as file:
-        file.write(r.text)
-        print(f'Данные сохранены в {category}')
-
-def get_content(shard, query, low_price=None, top_price=None):
-    headers = {'Accept': "*/*", 'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-    data_list = []
-    for page in range(1, 101):
-        print(f'Сбор позиций со страницы {page} из 100')
-        url = f'https://catalog.wb.ru/catalog/{shard}/catalog?appType=1&curr=rub&dest=-1075831,-77677,-398551,12358499' \
-              f'&locale=ru&page={page}&priceU={low_price * 100};{top_price * 100}' \
-              f'®=0®ions=64,83,4,38,80,33,70,82,86,30,69,1,48,22,66,31,40&sort=popular&spp=0&{query}'
+def get_json_file_category(category, subcategory, shard, query, headers):
+    page = 1
+    flag = True
+    name = f'data_json/{category}_{subcategory}.json'
+    while flag:
+        url = get_url(shard, query, page)
         r = requests.get(url, headers=headers)
-        data = r.json()
-        print(f'Добавлено позиций: {len(get_data_from_json(data))}')
-        if len(get_data_from_json(data)) > 0:
-            data_list.extend(get_data_from_json(data))
-        else:
-            print(f'Сбор данных завершен.')
-            break
-    return data_list
 
-def get_url(shard, query):
-    url = f"https://catalog.wb.ru/catalog/{shard}/catalog?appType=1&{query}&couponsGeo=2,12,7,3,6,18,22,21&curr=rub&dest=-1075831,-72193,-2725551,-3927439&emp=0&lang=ru&locale=ru&page=1&pricemarginCoeff=1.0&reg=1&regions=80,64,83,4,38,33,70,69,86,30,40,48,1,22,66,31&sort=popular&spp=26&sppFixGeo=4"
+        if len(r.text) > 0:
+            data = r.json()
+            with open(name, 'a', encoding='utf-8') as json_file:
+                json.dump(data, json_file, indent=4, ensure_ascii=False)
+                page += 1
+            
+            sleep(random.randrange(1,3))
+        else:
+            flag = False
+            print(f'Данные сохранены в {name}')
+
+def get_url(shard, query, page):
+    url = f"https://catalog.wb.ru/catalog/{shard}/catalog?appType=1&{query}&couponsGeo=2,12,7,3,6,18,22,21&curr=rub&dest=-1075831,-72193,-2725551,-3927439&emp=0&lang=ru&locale=ru&page={page}&pricemarginCoeff=1.0&reg=1&regions=80,64,83,4,38,33,70,69,86,30,40,48,1,22,66,31&sort=popular&spp=26&sppFixGeo=4"
     return url
 
-
 def get_data(file, headers):
-    pref_url = "https://www.wildberries.ru"
-
     with open(file, 'r', encoding='UTF-8') as json_file:
         data = json.load(json_file)
 
     category_id = {}
+    datas = {} # названия категорий и их подкатегорий, у которых нет параметров shard, query
     for x in data:
         category = x['name']
         id = x['id']
         url = x['url']
-        if 'shard' in x and 'query' in x:
-            shard = x['shard']
-            query = x['query']
-
-        if "https://" not in url:
-            url = pref_url + url
 
         if 'childs' in x:
             with open(f'data/{category}.csv', 'w', encoding="utf-8-sig", newline='') as file:
@@ -71,14 +58,29 @@ def get_data(file, headers):
                 subcategory = y['name']
                 subid = y['id']
                 suburl = y['url']
+                if 'shard' in y and 'query' in y:
+                    subshard = y['shard']
+                    subquery = y['query']
 
-                if "https://" not in suburl:
-                    suburl = pref_url + suburl
+                    get_json_file_category(category, subcategory, subshard, subquery, headers)
+
+                else:
+                    if category in datas:
+                        datas[category].append(subcategory)
+                    else:
+                        datas[category] = [subcategory]
 
                 with open(f'data/{category}.csv', 'a', encoding="utf-8-sig", newline='') as file:
                     writer = csv.writer(file, delimiter=';')
                     writer.writerow((id, subid, subcategory, suburl))
-        else:            
+        else:  
+            if 'shard' in x and 'query' in x:
+                shard = x['shard']
+                query = x['query']
+
+                get_json_file_category(category, '', shard, query, headers)
+            else:
+                datas[category] = []          
             with open(f'data/{category}.csv', 'w', encoding="utf-8-sig", newline='') as file:
                 writer = csv.writer(file, delimiter=';')
                 writer.writerow(("id", "url"))
@@ -86,17 +88,14 @@ def get_data(file, headers):
 
         category_id[category] = id
 
-        if category == 'Сделано в Москве':
-            url = get_url(shard,query)
-            print(url)
-            get_htmp_page(url, category, headers)
 
-file = 'wb_catalogs_data.json'
-name = 'wb_catalogs_data.json'
-url_wb = "https://static-basket-01.wb.ru/vol0/data/main-menu-ru-ru-v2.json"
-headers = {
-                    "Accept": "*/*",
-                    "User-Agent": "Mozilla/5.0 (iPad; CPU OS 13_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/87.0.4280.77 Mobile/15E148 Safari/604.1"
-                }
-# get_json_file(name, url_wb, headers)
-get_data(file, headers)
+if __name__ == '__main__':
+    file = 'wb_catalogs_data.json'
+    name = 'wb_catalogs_data.json'
+    url_wb = "https://static-basket-01.wb.ru/vol0/data/main-menu-ru-ru-v2.json"
+    headers = {
+                        "Accept": "*/*",
+                        "User-Agent": "Mozilla/5.0 (iPad; CPU OS 13_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/87.0.4280.77 Mobile/15E148 Safari/604.1"
+                    }
+    # get_json_file(name, url_wb, headers)
+    get_data(file, headers)
